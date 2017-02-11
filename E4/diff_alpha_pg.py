@@ -17,7 +17,9 @@ def Reward_Cal(mu,sigma,num,dim):
 def Confidence_interval(R,confidence):
     mean = np.mean(R,0)
     std = scipy.stats.sem(R,0)
-    down,up = scipy.stats.t.interval(confidence,np.size(R,0)-1,loc=mean,scale=std)
+    down = mean - 1.96 * std
+    up = mean + 1.96 * std
+    # down,up = scipy.stats.t.interval(confidence,np.size(R,0)-1,loc=mean,scale=std)
     return mean, up, down
 
 #Calculate gradient

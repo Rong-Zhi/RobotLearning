@@ -17,7 +17,9 @@ def Reward_Cal(mu,sigma,num,dim):
 def Confidence_interval(R,confidence):
     mean = np.mean(R,0)
     std = scipy.stats.sem(R,0)
-    down,up = scipy.stats.t.interval(confidence,np.size(R,0)-1,loc=mean,scale=std)
+    down = mean - 1.96 * std
+    up = mean + 1.96 * std
+    # down,up = scipy.stats.t.interval(confidence,np.size(R,0)-1,loc=mean,scale=std)
     return mean, up, down
 
 #Calculate gradient of mu and sigma
@@ -38,49 +40,36 @@ numDim = 10
 numSamples = 25
 maxIter = 100
 numTrials = 10
-alpha = 0.8
-delta_R = 10
-# Total_R = np.zeros(shape=(10,maxIter))
-# for i in range(10):
-Mu_w = np.zeros(numDim)
-Sigma_w = np.eye(numDim) * 1e6
-sample = np.random.multivariate_normal(Mu_w, Sigma_w)
-Reward = env.getReward(sample)
-R = []
-R.append(Reward)
-for t in range(maxIter):
-    sample,Rewards = Reward_Cal(Mu_w,Sigma_w,numSamples,numDim)
-    d_mu,d_sgma = gradient(Mu_w,Sigma_w,numSamples,numDim,sample,Rewards)
-    Mu_w = Mu_w + alpha * d_mu
+alpha = 0.9
+Total_R = np.zeros(shape=(10,maxIter))
+for i in range(10):
+    Mu_w = np.zeros(numDim)
+    Sigma_w = np.eye(numDim) * 100
+    R = []
+    for t in range(maxIter):
+        sample,Rewards = Reward_Cal(Mu_w,Sigma_w,numSamples,numDim)
+        d_mu,d_sgma = gradient(Mu_w,Sigma_w,numSamples,numDim,sample,Rewards)
+        Mu_w = Mu_w + alpha * d_mu
+        Sigma_w = Sigma_w + alpha * d_sgma
+        for i in range(np.size(Sigma_w,0)):
+            for j in range(np.size(Sigma_w,1)):
+                Sigma_w[i,j] = max(abs(Sigma_w[i,j]),1e-2)
+        R.append(np.mean(Rewards))
+        print("Mean Rewards:",np.mean(Rewards))
+        print("Sigma:",Sigma_w.min())
+    Total_R[i,:] = R[:]
 
-    Sigma_w = Sigma_w + alpha * d_sgma
-    R.append(np.mean(Rewards))
-    print("Mean Rewards:",np.mean(Rewards))
-    print("Sigma:",Sigma_w.min())
-    # delta_R = np.abs(R[t]-R[t-1])
-    # if delta_R < 1e-3:
-    #     Sigma_w_x = Sigma_w + np.eye(numDim)
-    #     _,Rewards_x = Reward_Cal(Mu_w,Sigma_w_x,numSamples,numDim)
-    #     meanRewards_x = np.mean(Rewards_x)
-    #     t = t + 1
-    #     dR = np.abs(R[t]-R[t-1])
-    #     print("abs:",dR)
-    #     if dR < 1e-3 :
-    #         print("iteration time: ", t)
-    #         break
-#     Total_R[i,:] = R[:]
-# #
-# mean,up,down = Confidence_interval(Total_R,confidence=0.95)
-# #
-# plt.figure()
+mean,up,down = Confidence_interval(Total_R,confidence=0.95)
 #
-# plt.plot(mean, 'r')
-# plt.xlabel('Time step')
-# plt.ylabel('Averaged Reward')
-#
-# plt.plot(up,'b')
-# plt.plot(down,'b')
-# plt.fill_between(np.arange(0, maxIter, 1),up, down,color='skyblue')
-# # plt.yscale('symlog')
-# plt.show()
-#
+plt.figure()
+
+plt.plot(mean, 'r')
+plt.xlabel('Time step')
+plt.ylabel('Averaged Reward')
+
+plt.plot(up,'b')
+plt.plot(down,'b')
+plt.fill_between(np.arange(0, maxIter, 1),up, down,color='skyblue')
+plt.yscale('symlog')
+plt.show()
+

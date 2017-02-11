@@ -10,7 +10,9 @@ import scipy.stats
 def Confidence_interval(R,confidence):
     mean = np.mean(R,0)
     std = scipy.stats.sem(R,0)
-    down,up = scipy.stats.t.interval(confidence,np.size(R,0)-1,loc=mean,scale=std)
+    down = mean - 1.96 * std
+    up = mean + 1.96 * std
+    # down,up = scipy.stats.t.interval(confidence,np.size(R,0)-1,loc=mean,scale=std)
     return mean, up, down
 
 # Calculate Reward of each sample
@@ -27,16 +29,20 @@ def meannvar(sample,Reward,l,num,dim):
     beta = l/(max(Reward)-min(Reward))
     meansum = np.zeros(dim)
     s_sum = np.zeros(shape=(dim,dim))
-    weight = np.zeros(num)
+    weight = np.zeros(shape=(num,1))
+    # tmp = np.zeros(shape=(1,dim))
     for i in range(num):
         weight[i] = np.exp((Reward[i]-max(Reward))*beta)
         meansum = meansum + weight[i] *sample[i,:]
     Mu_w = meansum/sum(weight)
     for i in range(num):
-        tmp = np.matrix(sample[i,:] - Mu_w[:])
-        s_sum = s_sum + weight[i] * np.matmul(tmp.transpose(),tmp)
+        tmp = sample[i,:] - Mu_w
+        tmp = weight[i] * np.square(tmp)/sum(weight)
+        for m in range(dim):
+            s_sum[m,m] = s_sum[m,m] + tmp[m]
+        # s_sum = s_sum + weight[i] * (tmp.transpose() * tmp)
     newReward = np.mean(Reward)
-    Sigma_w = s_sum / sum(weight)
+    Sigma_w = s_sum
     return Mu_w,Sigma_w,newReward
 
 
@@ -47,18 +53,15 @@ maxIter = 100
 numTrials = 10
 l = 7
 
-
-# ... then draw a sample and simulate an episode
-
-delta_R = 10
+# delta_R = 10
 Total_R = np.zeros(shape=(10,maxIter))
 for i in range(10):
     Mu_w = np.zeros(numDim)
     Sigma_w = np.eye(numDim) * 1e6
-    sample = np.random.multivariate_normal(Mu_w, Sigma_w)
-    Reward = env.getReward(sample)
+    # sample = np.random.multivariate_normal(Mu_w, Sigma_w)
+    # Reward = env.getReward(sample)
     R = []
-    R.append(Reward)
+    # R.append(Reward)
     for t in range(maxIter):
         sample,Rewards = Reward_Cal(Mu_w,Sigma_w,numSamples,numDim)
         Mu_w,Sigma_w,meanRewards = meannvar(sample,Rewards,l,numSamples,numDim)
@@ -74,7 +77,7 @@ for i in range(10):
         #     if dR < 1e-3 :
         #         print("iteration time: ", t)
         #         break
-    Total_R[i,:] = R[1:maxIter+1]
+    Total_R[i,:] = R[:]
 # print("Reward:",R[-1])
 
 mean,up,down = Confidence_interval(Total_R,confidence=0.95)
@@ -88,7 +91,7 @@ plt.title('Mean of the average return with 95% confidence')
 
 plt.plot(up,'b')
 plt.plot(down,'b')
-plt.fill_between(np.arange(0, maxIter, 1),up, down,color='skyblue')
+plt.fill_between(np.arange(0, maxIter, 1),up, down,color='skyblue',alpha=0.5)
 plt.yscale('symlog')
 plt.show()
 

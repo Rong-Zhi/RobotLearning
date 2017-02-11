@@ -17,15 +17,17 @@ def Reward_Cal(mu,sigma,num,dim):
 def Confidence_interval(R,confidence):
     mean = np.mean(R,0)
     std = scipy.stats.sem(R,0)
-    down,up = scipy.stats.t.interval(confidence,np.size(R,0)-1,loc=mean,scale=std)
+    down = mean - 1.96 * std
+    up = mean + 1.96 * std
+    # down,up = scipy.stats.t.interval(confidence,np.size(R,0)-1,loc=mean,scale=std)
     return mean, up, down
 
 #Calculate gradient
 def mu_gradient(mu,sigma,num,dim,theta,Rewards):
     d_mu = np.zeros(dim)
     for i in range(num):
-        tmp = (Rewards[i]-np.mean(Rewards))
-        # tmp = Rewards[i]
+        # tmp = (Rewards[i]-np.mean(Rewards))
+        tmp = Rewards[i]
         d_mu = d_mu + tmp * (theta[i,:]-mu[:])/np.diag(sigma) **2
     return d_mu
 
@@ -33,7 +35,7 @@ def mu_gradient(mu,sigma,num,dim,theta,Rewards):
 env = Pend2dBallThrowDMP()
 numDim = 10
 numSamples = 25
-maxIter = 100
+maxIter = 10
 numTrials = 10
 alpha = 0.1
 delta_R = 10
@@ -61,6 +63,6 @@ plt.ylabel('Averaged Reward')
 plt.plot(up,'b')
 plt.plot(down,'b')
 plt.fill_between(np.arange(0, maxIter, 1),up, down,color='skyblue')
-# plt.yscale('symlog')
+plt.yscale('symlog')
 plt.show()
 
